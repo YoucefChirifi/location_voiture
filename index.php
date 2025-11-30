@@ -503,6 +503,469 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
             
+        case 'update_car':
+            if ($user->getRole() === 'agent' || $user->getRole() === 'admin') {
+                $_POST['prix_journalier'] = Car::calculatePrice($_POST['annee'], $_POST['marque']);
+                if ($car->update($_POST['car_id'], $_POST)) {
+                    $success = "Voiture mise à jour avec succès";
+                } else {
+                    $error = "Erreur lors de la mise à jour";
+                }
+            }
+            break;
+            
+        case 'delete_car':
+            if ($user->getRole() === 'agent' || $user->getRole() === 'admin') {
+                if ($car->delete($_POST['car_id'])) {
+                    $success = "Voiture supprimée avec succès";
+                } else {
+                    $error = "Erreur lors de la suppression";
+                }
+            }
+            break;
+            
+        case 'make_reservation':
+            if ($user->getRole() === 'client') {
+                $_POST['user_id'] = $user->getUserId();
+                $reservation_id = $reservation->create($_POST);
+                if ($reservation_id) {
+                    $success = "Réservation effectuée avec succès ! ID: " . $reservation_id;
+                } else {
+                    $error = "Erreur lors de la réservation";
+                }
+            }
+            break;
+            
+        case 'update_payment':
+            if ($user->getRole() === 'agent' || $user->getRole() === 'admin') {
+                if ($reservation->updatePaymentStatus($_POST['reservation_id'], $_POST['paiement_statut'])) {
+                    $success = "Statut de paiement mis à jour";
+                } else {
+                    $error = "Erreur lors de la mise à jour";
+                }
+            }
+            break;
+            
+        case 'complete_reservation':
+            if ($user->getRole() === 'agent' || $user->getRole() === 'admin') {
+                if ($reservation->completeReservation($_POST['reservation_id'])) {
+                    $success = "Réservation terminée";
+                } else {
+                    $error = "Erreur";
+                }
+            }
+            break;
+            
+        case 'cancel_reservation':
+            if ($reservation->cancelReservation($_POST['reservation_id'])) {
+                $success = "Réservation annulée";
+            } else {
+                $error = "Erreur lors de l'annulation";
+            }
+            break;
+    }
+}
+
+// Gestion de la date simulée pour tester l'application
+if (!isset($_SESSION['current_date'])) {
+    $_SESSION['current_date'] = date('Y-m-d');
+}
+
+if (isset($_GET['change_date'])) {
+    if ($_GET['change_date'] === 'next') {
+        $date = new DateTime($_SESSION['current_date']);
+        $date->modify('+1 day');
+        $_SESSION['current_date'] = $date->format('Y-m-d');
+    } elseif ($_GET['change_date'] === 'prev') {
+        $date = new DateTime($_SESSION['current_date']);
+        $date->modify('-1 day');
+        $_SESSION['current_date'] = $date->format('Y-m-d');
+    }
+    header("Location: index.php?page=" . ($_GET['page'] ?? 'dashboard'));
+    exit();
+}
+
+$current_date = $_SESSION['current_date'];
+
+// Vérifier et mettre à jour automatiquement les réservations terminées
+function checkExpiredReservations() {
+    global $current_date;
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        UPDATE reservations 
+        SET statut = 'terminee' 
+        WHERE date_fin < ? AND statut = 'en_cours'
+    ");
+    $stmt->execute([$current_date]);
+    
+    // Libérer les voitures
+    $stmt = $db->prepare("
+        UPDATE cars c
+        JOIN reservations r ON c.car_id = r.car_id
+        SET c.statut = 'disponible'
+        WHERE r.date_fin < ? AND r.statut = 'terminee' AND c.statut = 'louee'
+    ");
+    $stmt->execute([$current_date]);
+    
+    // Mettre en cours les réservations qui commencent aujourd'hui
+    $stmt = $db->prepare("
+        UPDATE reservations 
+        SET statut = 'en_cours' 
+        WHERE date_debut <= ? AND date_fin >= ? AND statut = 'en_attente'
+    ");
+    $stmt->execute([$current_date, $current_date]);
+}
+
+checkExpiredReservations();
+
+// Déterminer la page à afficher
+$page = $_GET['page'] ?? 'home';
+
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Voiture Algérie</title>
+</head>
+<body>
+
+<?php if ($user->isLoggedIn()): ?>
+    <!-- HEADER POUR UTILISATEURS CONNECTÉS -->
+    <div class="header">
+        <h1>Location Voiture DZ</h1>
+        <div class="user-info">
+            <span>Bienvenue, <?php echo htmlspecialchars($_SESSION['prenom'] . ' ' . $_SESSION['nom']); ?></span>
+            <span>Rôle: <?php echo htmlspecialchars($_SESSION['role']); ?></span>
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="action" value="logout">
+                <button type="submit">Déconnexion</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- SIMULATEUR DE DATE -->
+    <div class="date-simulator">
+        <h3>Date Actuelle (Simulation): <?php echo $current_date; ?></h3>
+        <a href="?page=<?php echo $page; ?>&change_date=prev">← Jour Précédent</a>
+        <a href="?page=<?php echo $page; ?>&change_date=next">Jour Suivant →</a>
+    </div>
+    
+    <!-- NAVIGATION -->
+    <nav>
+        <a href="?page=dashboard">Tableau de bord</a>
+        
+        <?php if ($user->getRole() === 'admin'): ?>
+            <a href="?page=companies">Entreprises</a>
+            <a href="?page=all_users">Utilisateurs</a>
+            <a href="?page=all_reservations">Toutes Réservations</a>
+        <?php endif; ?>
+        
+        <?php if ($user->getRole() === 'agent'): ?>
+            <a href="?page=cars">Nos Voitures</a>
+            <a href="?page=reservations">Réservations</a>
+            <a href="?page=add_car">Ajouter Voiture</a>
+        <?php endif; ?>
+        
+        <?php if ($user->getRole() === 'client'): ?>
+            <a href="?page=browse_cars">Louer une Voiture</a>
+            <a href="?page=my_reservations">Mes Réservations</a>
+        <?php endif; ?>
+    </nav>
+    
+    <!-- MESSAGES -->
+    <?php if (isset($success)): ?>
+        <div class="success"><?php echo htmlspecialchars($success); ?></div>
+    <?php endif; ?>
+    
+    <?php if (isset($error)): ?>
+        <div class="error"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
+    
+    <!-- CONTENU PRINCIPAL -->
+    <div class="main-content">
+        <?php
+        switch($page) {
+            case 'dashboard':
+                include_dashboard();
+                break;
+            case 'companies':
+                if ($user->getRole() === 'admin') include_companies();
+                break;
+            case 'cars':
+                if ($user->getRole() === 'agent') include_cars();
+                break;
+            case 'add_car':
+                if ($user->getRole() === 'agent') include_add_car();
+                break;
+            case 'edit_car':
+                if ($user->getRole() === 'agent') include_edit_car();
+                break;
+            case 'reservations':
+                if ($user->getRole() === 'agent') include_agent_reservations();
+                break;
+            case 'browse_cars':
+                if ($user->getRole() === 'client') include_browse_cars();
+                break;
+            case 'my_reservations':
+                if ($user->getRole() === 'client') include_my_reservations();
+                break;
+            case 'all_reservations':
+                if ($user->getRole() === 'admin') include_all_reservations();
+                break;
+            default:
+                include_dashboard();
+        }
+        
+        // FONCTION: Tableau de bord
+        function include_dashboard() {
+            global $user, $car, $reservation, $company;
+            
+            echo "<h2>Tableau de Bord</h2>";
+            
+            if ($user->getRole() === 'admin') {
+                $companies = $company->getAll();
+                echo "<h3>Statistiques Globales</h3>";
+                echo "<p>Nombre d'entreprises: " . count($companies) . "</p>";
+                
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE role='client'");
+                $clients = $stmt->fetch(PDO::FETCH_ASSOC);
+                echo "<p>Nombre de clients: " . $clients['total'] . "</p>";
+                
+                $stmt = $db->query("SELECT COUNT(*) as total FROM cars");
+                $cars = $stmt->fetch(PDO::FETCH_ASSOC);
+                echo "<p>Nombre de voitures: " . $cars['total'] . "</p>";
+                
+            } elseif ($user->getRole() === 'agent') {
+                $cars = $car->getByCompany($user->getCompanyId());
+                $reservations = $reservation->getByCompany($user->getCompanyId());
+                
+                echo "<h3>Statistiques de l'Entreprise</h3>";
+                echo "<p>Nombre de voitures: " . count($cars) . "</p>";
+                echo "<p>Nombre de réservations: " . count($reservations) . "</p>";
+                
+                $disponibles = array_filter($cars, function($c) { return $c['statut'] === 'disponible'; });
+                $louees = array_filter($cars, function($c) { return $c['statut'] === 'louee'; });
+                
+                echo "<p>Voitures disponibles: " . count($disponibles) . "</p>";
+                echo "<p>Voitures louées: " . count($louees) . "</p>";
+                
+            } elseif ($user->getRole() === 'client') {
+                $reservations = $reservation->getByUser($user->getUserId());
+                
+                echo "<h3>Mes Statistiques</h3>";
+                echo "<p>Nombre de réservations: " . count($reservations) . "</p>";
+                
+                $en_cours = array_filter($reservations, function($r) { return $r['statut'] === 'en_cours'; });
+                echo "<p>Réservations en cours: " . count($en_cours) . "</p>";
+            }
+        }
+        
+        // FONCTION: Gestion des entreprises (Admin)
+        function include_companies() {
+            global $company, $wilayas;
+            
+            echo "<h2>Gestion des Entreprises</h2>";
+            
+            echo '<h3>Ajouter une Entreprise</h3>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_company">
+                <input type="text" name="nom" placeholder="Nom de l\'entreprise" required>
+                <input type="email" name="email" placeholder="Email" required>
+                <input type="text" name="telephone" placeholder="Téléphone" required>
+                <textarea name="adresse" placeholder="Adresse" required></textarea>
+                <select name="wilaya_id" required>
+                    <option value="">Sélectionner Wilaya</option>';
+            foreach ($wilayas as $id => $nom) {
+                echo "<option value='$id'>$id - $nom</option>";
+            }
+            echo '</select>
+                <button type="submit">Ajouter</button>
+            </form>';
+            
+            $companies = $company->getAll();
+            echo "<h3>Liste des Entreprises</h3>";
+            echo "<table border='1'>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Wilaya</th>
+                        <th>Actions</th>
+                    </tr>";
+            
+            foreach ($companies as $comp) {
+                echo "<tr>
+                        <td>{$comp['company_id']}</td>
+                        <td>" . htmlspecialchars($comp['nom']) . "</td>
+                        <td>" . htmlspecialchars($comp['email']) . "</td>
+                        <td>" . htmlspecialchars($comp['telephone']) . "</td>
+                        <td>" . htmlspecialchars($comp['wilaya_nom']) . "</td>
+                        <td>
+                            <form method='POST' style='display:inline;'>
+                                <input type='hidden' name='action' value='delete_company'>
+                                <input type='hidden' name='company_id' value='{$comp['company_id']}'>
+                                <button type='submit' onclick='return confirm(\"Confirmer?\")'>Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>";
+            }
+            echo "</table>";
+        }
+        
+        // FONCTION: Gestion des voitures (Agent)
+        function include_cars() {
+            global $car, $user;
+            
+            echo "<h2>Nos Voitures</h2>";
+            
+            $cars = $car->getByCompany($user->getCompanyId());
+            
+            if (empty($cars)) {
+                echo "<p>Aucune voiture enregistrée.</p>";
+                return;
+            }
+            
+            echo "<table border='1'>
+                    <tr>
+                        <th>ID</th>
+                        <th>Marque</th>
+                        <th>Modèle</th>
+                        <th>Année</th>
+                        <th>Matricule</th>
+                        <th>Couleur</th>
+                        <th>Prix/Jour (DA)</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>";
+            
+            foreach ($cars as $c) {
+                echo "<tr>
+                        <td>{$c['car_id']}</td>
+                        <td>" . htmlspecialchars($c['marque']) . "</td>
+                        <td>" . htmlspecialchars($c['modele']) . "</td>
+                        <td>{$c['annee']}</td>
+                        <td>" . htmlspecialchars($c['matricule']) . "</td>
+                        <td>" . htmlspecialchars($c['couleur']) . "</td>
+                        <td>" . number_format($c['prix_journalier'], 2) . " DA</td>
+                        <td>{$c['statut']}</td>
+                        <td>
+                            <a href='?page=edit_car&car_id={$c['car_id']}'>Modifier</a>
+                            <form method='POST' style='display:inline;'>
+                                <input type='hidden' name='action' value='delete_car'>
+                                <input type='hidden' name='car_id' value='{$c['car_id']}'>
+                                <button type='submit' onclick='return confirm(\"Supprimer?\")'>Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>";
+            }
+            echo "</table>";
+        }
+        
+        // FONCTION: Ajouter une voiture (Agent)
+        function include_add_car() {
+            global $wilayas, $car_models;
+            
+            echo "<h2>Ajouter une Voiture</h2>";
+            
+            echo '<form method="POST">
+                <input type="hidden" name="action" value="add_car">
+                
+                <label>Marque:</label>
+                <select name="marque" id="marque" required>
+                    <option value="">Sélectionner marque</option>';
+            foreach ($car_models as $marque => $modeles) {
+                echo "<option value='$marque'>$marque</option>";
+            }
+            echo '</select>
+                
+                <label>Modèle:</label>
+                <select name="modele" id="modele" required>
+                    <option value="">Sélectionner modèle</option>
+                </select>
+                
+                <label>Année:</label>
+                <input type="number" name="annee" min="1990" max="2025" required>
+                
+                <label>Matricule (ex: 15231 113 31):</label>
+                <input type="text" name="matricule" placeholder="15231 113 31" required pattern="[0-9]{5} [0-9]{3} [0-9]{2}">
+                
+                <label>Couleur:</label>
+                <input type="text" name="couleur" required>
+                
+                <label>Kilométrage:</label>
+                <input type="number" name="kilometrage" value="0" required>
+                
+                <label>Wilaya:</label>
+                <select name="wilaya_id" required>
+                    <option value="">Sélectionner Wilaya</option>';
+            foreach ($wilayas as $id => $nom) {
+                echo "<option value='$id'>$id - $nom</option>";
+            }
+            echo '</select>
+                
+                <button type="submit">Ajouter la Voiture</button>
+            </form>';
+        }
+        
+        // FONCTION: Modifier une voiture (Agent)
+        function include_edit_car() {
+            global $car, $wilayas, $car_models;
+            
+            $car_id = $_GET['car_id'] ?? 0;
+            $car_info = $car->getById($car_id);
+            
+            if (!$car_info) {
+                echo "<p>Voiture non trouvée</p>";
+                return;
+            }
+            
+            echo "<h2>Modifier la Voiture</h2>";
+            
+            echo '<form method="POST">
+                <input type="hidden" name="action" value="update_car">
+                <input type="hidden" name="car_id" value="' . $car_id . '">
+                
+                <label>Marque:</label>
+                <select name="marque" required>
+                    <option value="">Sélectionner marque</option>';
+            foreach ($car_models as $marque => $modeles) {
+                $selected = ($marque === $car_info['marque']) ? 'selected' : '';
+                echo "<option value='$marque' $selected>$marque</option>";
+            }
+            echo '</select>
+                
+                <label>Modèle:</label>
+                <input type="text" name="modele" value="' . htmlspecialchars($car_info['modele']) . '" required>
+                
+                <label>Année:</label>
+                <input type="number" name="annee" value="' . $car_info['annee'] . '" min="1990" max="2025" required>
+                
+                <label>Matricule:</label>
+                <input type="text" name="matricule" value="' . htmlspecialchars($car_info['matricule']) . '" required>
+                
+                <label>Couleur:</label>
+                <input type="text" name="couleur" value="' . htmlspecialchars($car_info['couleur']) . '" required>
+                
+                <label>Kilométrage:</label>
+                <input type="number" name="kilometrage" value="' . $car_info['kilometrage'] . '" required>
+                
+                <label>Wilaya:</label>
+                <select name="wilaya_id" required>';
+            foreach ($wilayas as $id => $nom) {
+                $selected = ($id == $car_info['wilaya_id']) ? 'selected' : '';
+                echo "<option value='$id' $selected>$id - $nom</option>";
+            }
+            echo '</select>
+                
+                <button type="submit">Mettre à Jour</button>
+            </form>';
+        }
+            
         case 'register':
             if ($user->register($_POST)) {
                 $success = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
@@ -537,5 +1000,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             break;
+
 </body>
 </html>
