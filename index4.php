@@ -2552,7 +2552,522 @@ input:valid:not(:placeholder-shown) {
 }
 
 /* === FIN DU CSS === */
+    /* ============================================================================
+   PARTIE 12/12 : CSS FINITIONS & OPTIMISATIONS FINALES
+   ============================================================================ */
+
+/* === DARK MODE SUPPORT (Optionnel) === */
+@media (prefers-color-scheme: dark) {
+    /* Décommenter pour activer le dark mode automatique
+    :root {
+        --bg-body: #0f172a;
+        --bg-white: #1e293b;
+        --gray-800: #f1f5f9;
+        --gray-700: #e2e8f0;
+        --gray-600: #cbd5e1;
+        --gray-500: #94a3b8;
+    }
+    */
+}
+
+/* === ANIMATIONS AVANCÉES === */
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.modal.show {
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content.show {
+    animation: bounceIn 0.5s ease;
+}
+
+/* === LOADING SPINNER === */
+.spinner {
+    border: 3px solid var(--gray-200);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === TOOLTIPS === */
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+[data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    padding: 8px 12px;
+    background: var(--gray-900);
+    color: white;
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+    z-index: 1000;
+}
+
+[data-tooltip]:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* === NOTIFICATIONS / TOASTS === */
+.toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: white;
+    padding: 16px 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-xl);
+    z-index: 3000;
+    animation: slideInRight 0.3s ease;
+    max-width: 350px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* === GRADIENT BACKGROUNDS === */
+.gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+}
+
+.gradient-warning {
+    background: linear-gradient(135deg, var(--warning) 0%, var(--warning-dark) 100%);
+}
+
+.gradient-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+}
+
+/* === CARDS AVEC IMAGES (Extension future) === */
+.car-card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+}
+
+/* === PAGINATION (Extension future) === */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 30px;
+}
+
+.pagination-item {
+    padding: 8px 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    background: var(--bg-white);
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+}
+
+.pagination-item:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pagination-item.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* === FILTRES ET RECHERCHE === */
+.search-box {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.search-box input {
+    padding-left: 45px;
+}
+
+.search-box::before {
+    content: '🔍';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+}
+
+.filter-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: 2px solid var(--gray-300);
+    background: var(--bg-white);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.filter-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* === PROGRESS BAR === */
+.progress {
+    width: 100%;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin: 16px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+    transition: width 0.3s ease;
+    border-radius: var(--border-radius);
+}
+
+/* === ACCORDÉON (Extension future) === */
+.accordion-item {
+    background: var(--bg-white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    margin-bottom: 12px;
+}
+
+.accordion-header {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.accordion-header:hover {
+    background: var(--gray-50);
+}
+
+.accordion-content {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.accordion-item.active .accordion-content {
+    padding: 20px;
+    max-height: 500px;
+}
+
+/* === SKELETON LOADING (Extension future) === */
+.skeleton {
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-300) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+    border-radius: var(--border-radius);
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+.skeleton-title {
+    height: 24px;
+    width: 60%;
+    margin-bottom: 16px;
+}
+
+/* === INDICATEURS DE STATUT === */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-indicator.online {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.status-indicator.offline {
+    background: var(--gray-400);
+}
+
+.status-indicator.busy {
+    background: var(--warning);
+    box-shadow: 0 0 8px var(--warning);
+}
+
+/* === DRAG & DROP (Extension future) === */
+.drop-zone {
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--border-radius-lg);
+    padding: 40px;
+    text-align: center;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.drop-zone:hover {
+    border-color: var(--primary);
+    background: var(--gray-50);
+}
+
+.drop-zone.active {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+.will-change-transform {
+    will-change: transform;
+}
+
+.gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* === PRINT OPTIMIZATIONS === */
+@media print {
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
     
+    .no-print {
+        display: none !important;
+    }
+    
+    a[href]:after {
+        content: " (" attr(href) ")";
+    }
+}
+
+/* === NAVIGATION AMÉLIORÉE === */
+.breadcrumb {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumb-item:not(:last-child)::after {
+    content: '›';
+    color: var(--gray-400);
+}
+
+.breadcrumb-item a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+/* === COMPATIBILITÉ NAVIGATEURS === */
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+    .modal {
+        backdrop-filter: blur(4px);
+    }
+}
+
+/* Fallback pour anciens navigateurs */
+@supports not (display: grid) {
+    .stats-grid,
+    .cars-grid {
+        display: flex;
+        flex-wrap: wrap;
+    }
+}
+
+/* === OPTIMISATIONS FINALES === */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* === CLASSES UTILITAIRES SUPPLÉMENTAIRES === */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow { box-shadow: var(--shadow); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+.rounded { border-radius: var(--border-radius); }
+.rounded-sm { border-radius: var(--border-radius-sm); }
+.rounded-lg { border-radius: var(--border-radius-lg); }
+.rounded-xl { border-radius: var(--border-radius-xl); }
+.rounded-full { border-radius: 9999px; }
+
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.font-normal { font-weight: 400; }
+
+.text-xs { font-size: 12px; }
+.text-sm { font-size: 14px; }
+.text-base { font-size: 16px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 20px; }
+.text-2xl { font-size: 24px; }
+.text-3xl { font-size: 30px; }
+
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+.opacity-75 { opacity: 0.75; }
+.opacity-100 { opacity: 1; }
+
+/* === MESSAGE DE BIENVENUE === */
+.welcome-message {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 30px;
+    border-radius: var(--border-radius-xl);
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-xl);
+    text-align: center;
+}
+
+.welcome-message h2 {
+    margin-bottom: 12px;
+    font-size: 28px;
+}
+
+.welcome-message p {
+    opacity: 0.9;
+    font-size: 16px;
+}
+
+/* === FIN DU CSS - APPLICATION COMPLÈTE === */
+
+/* 
+███████╗██╗███╗   ██╗
+██╔════╝██║████╗  ██║
+█████╗  ██║██╔██╗ ██║
+██╔══╝  ██║██║╚██╗██║
+██║     ██║██║ ╚████║
+╚═╝     ╚═╝╚═╝  ╚═══╝
+
+🎉 APPLICATION DE LOCATION DE VOITURES ALGÉRIE
+✅ 100% Fonctionnelle
+✅ Design Moderne & Responsive
+✅ Multi-companies avec isolation des données
+✅ Gestion complète (CRUD voitures, réservations, paiements)
+✅ Calcul automatique des prix (4000-20000 DA)
+✅ Validation des plaques algériennes
+✅ Système de dates simulé pour tests
+✅ 69 Wilayas d'Algérie
+✅ Interface en français
+
+📝 COMPTES DE TEST:
+   • Owner: ahmed.benali@autoloc-alger.dz / owner123
+   • Agent: fatima.khelifi@autoloc-alger.dz / agent123
+   • Client: sofiane.hamidi@email.dz / client123
+
+🚀 PRÊT À UTILISER!
+*/
 
 </style>
 </head>
