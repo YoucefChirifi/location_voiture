@@ -10,7 +10,7 @@ session_start();
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('DB_NAME', 'location_voiture');
+define('DB_NAME', 'cherifi_youssouf_agency'); // BASE DE DONNÉES CORRIGÉE
 
 // Configuration de l'application
 define('CURRENCY', 'DA');
@@ -28,6 +28,41 @@ if (!isset($_SESSION['current_date'])) {
 }
 
 // ============================================================================
+// FONCTION POUR CRÉER LA BASE SI ELLE N'EXISTE PAS
+// ============================================================================
+function createDatabaseIfNotExists() {
+    $host = DB_HOST;
+    $user = DB_USER;
+    $pass = DB_PASS;
+    $dbname = DB_NAME;
+    
+    try {
+        // Connexion sans base de données spécifique
+        $conn = new mysqli($host, $user, $pass);
+        
+        if ($conn->connect_error) {
+            die("Erreur de connexion MySQL: " . $conn->connect_error);
+        }
+        
+        // Créer la base de données si elle n'existe pas
+        $sql = "CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+        if ($conn->query($sql) === TRUE) {
+            error_log("✅ Base de données '$dbname' créée ou déjà existante");
+        } else {
+            die("❌ Erreur création base: " . $conn->error);
+        }
+        
+        $conn->close();
+        
+    } catch (Exception $e) {
+        die("❌ Erreur lors de la création de la base: " . $e->getMessage());
+    }
+}
+
+// Créer la base de données d'abord
+createDatabaseIfNotExists();
+
+// ============================================================================
 // CLASS: Database - Gestion de la connexion et des requêtes
 // ============================================================================
 class Database {
@@ -39,7 +74,13 @@ class Database {
             $this->conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
             
             if ($this->conn->connect_error) {
-                die("Erreur de connexion : " . $this->conn->connect_error);
+                // Si la connexion échoue, créer la base et réessayer
+                if ($this->conn->connect_errno == 1049) { // Base doesn't exist
+                    createDatabaseIfNotExists();
+                    $this->conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+                } else {
+                    die("Erreur de connexion : " . $this->conn->connect_error);
+                }
             }
             
             $this->conn->set_charset("utf8mb4");
@@ -138,6 +179,8 @@ class Database {
         $row = $result->fetch_assoc();
         
         if ($row['count'] == 0) {
+            error_log("🔄 Insertion des données de test dans cherifi_youssouf_agency...");
+            
             // Insérer 3 companies
             $companies = [
                 ['AutoLoc Alger', 'contact@autoloc-alger.dz', '0770123456', '10 Rue Didouche Mourad', 'Alger'],
@@ -191,6 +234,8 @@ class Database {
                 $stmt->bind_param("sssssssss", $client[0], $client[1], $client[2], $password, $client[4], $client[5], $client[6], $client[7], $client[8]);
                 $stmt->execute();
             }
+            
+            error_log("✅ Données de test insérées avec succès dans cherifi_youssouf_agency");
         }
     }
     
@@ -210,6 +255,7 @@ class Database {
 // Initialiser la connexion
 $db = Database::getInstance();
 
+// ... LE RESTE DE VOTRE CODE RESTE IDENTIQUE ...
 ?>
 
 <?php
@@ -1189,8 +1235,360 @@ function isActiveReservation($start_date, $end_date) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Location de Voitures - Algérie</title>
     <style>
-        /* Le CSS sera ajouté dans la partie 11 */
-    </style>
+/* ============================================================================
+   PARTIE 9/12 : CSS BASE, RESET & VARIABLES
+   ============================================================================ */
+
+/* === RESET & BASE === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Couleurs principales */
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #3b82f6;
+    
+    --secondary: #64748b;
+    --secondary-dark: #475569;
+    --secondary-light: #94a3b8;
+    
+    --success: #10b981;
+    --success-dark: #059669;
+    --success-light: #34d399;
+    
+    --warning: #f59e0b;
+    --warning-dark: #d97706;
+    --warning-light: #fbbf24;
+    
+    --danger: #ef4444;
+    --danger-dark: #dc2626;
+    --danger-light: #f87171;
+    
+    --info: #06b6d4;
+    --info-dark: #0891b2;
+    --info-light: #22d3ee;
+    
+    --money: #8b5cf6;
+    
+    /* Couleurs neutres */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    
+    /* Couleurs de fond */
+    --bg-body: #f8fafc;
+    --bg-white: #ffffff;
+    --bg-dark: #0f172a;
+    
+    /* Ombres */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    
+    /* Bordures */
+    --border-radius: 8px;
+    --border-radius-sm: 4px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    /* Transitions */
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--gray-800);
+    line-height: 1.6;
+    font-size: 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* === CONTENEURS === */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    width: 100%;
+}
+
+.main-content {
+    flex: 1;
+    padding: 30px 20px;
+}
+
+/* === SIMULATEUR DE DATE === */
+.date-simulator {
+    background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-900) 100%);
+    color: white;
+    padding: 12px 0;
+    box-shadow: var(--shadow-md);
+}
+
+.date-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.current-date {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 20px;
+    border-radius: var(--border-radius);
+    font-size: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.btn-date {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-date:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* === NAVIGATION === */
+.navbar {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 20px 0;
+    box-shadow: var(--shadow-lg);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.nav-brand h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-info {
+    font-size: 15px;
+}
+
+.user-role {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 10px;
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+.nav-text {
+    font-size: 15px;
+    opacity: 0.95;
+}
+
+/* === ALERTES === */
+.alert {
+    padding: 16px 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    animation: slideDown 0.3s ease;
+    transition: opacity 0.5s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    color: var(--success-dark);
+    border-left: 4px solid var(--success);
+}
+
+.alert-error {
+    background-color: #fee2e2;
+    color: var(--danger-dark);
+    border-left: 4px solid var(--danger);
+}
+
+.alert-info {
+    background-color: #dbeafe;
+    color: var(--info-dark);
+    border-left: 4px solid var(--info);
+}
+
+/* === BOUTONS === */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--success-light) 0%, var(--success) 100%);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--warning) 0%, var(--warning-dark) 100%);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, var(--warning-light) 0%, var(--warning) 100%);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, var(--danger-light) 0%, var(--danger) 100%);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--gray-200);
+    color: var(--gray-800);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-300);
+}
+
+.btn-logout {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-block {
+    width: 100%;
+    display: block;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* === BADGES === */
+.badge {
+    padding: 4px 10px;
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-success {
+    background: var(--success-light);
+    color: var(--success-dark);
+}
+
+.badge-warning {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+}
+
+.badge-danger {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+.badge-info {
+    background: var(--info-light);
+    color: var(--info-dark);
+}
+
+.badge-secondary {
+    background: var(--gray-300);
+    color: var(--gray-700);
+    
+}    </style>
 </head>
 <body>
 
