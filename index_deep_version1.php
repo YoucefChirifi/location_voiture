@@ -2522,4 +2522,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 </html>
 <?php
-// Fin du fichierkjlklklk
+// Fin du fichier
