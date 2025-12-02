@@ -11,8 +11,18 @@
 session_start();
 
 // Configuration de l'affichage des erreurs
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Configuration de l'affichage des erreurs
+if ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_ADDR'] === '127.0.0.1') {
+    // Mode développement
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+} else {
+    // Mode production
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
+    ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+}
 
 /***************************************************************
  * PARTIE 1: CONFIGURATION DE LA BASE DE DONNÉES ET CLASSES
